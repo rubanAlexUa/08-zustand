@@ -1,24 +1,25 @@
 "use client";
+
 import c from "./NoteForm.module.css";
-import { Field, Formik, Form, ErrorMessage } from "formik";
+import { Formik, Form, Field, ErrorMessage, FormikHelpers } from "formik";
 import * as Yup from "yup";
-import type { FormikHelpers } from "formik";
 import type { NoteFormValues } from "../../types/note";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createNote } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { useNoteDraftStore } from "@/lib/store/noteStore";
 
-interface NoteFormProps {
-  onClose: () => void;
-}
+export default function NoteForm() {
+  const router = useRouter();
+  const { draft, setDraft, clearDraft } = useNoteDraftStore();
 
-export default function NoteForm({ onClose }: NoteFormProps) {
   const initialValues: NoteFormValues = {
-    title: "",
-    content: "",
-    tag: "Todo",
+    title: draft.title || "",
+    content: draft.content || "",
+    tag: draft.tag || "Todo",
   };
 
-  const OrderFormSchema = Yup.object().shape({
+  const validationSchema = Yup.object().shape({
     title: Yup.string()
       .min(3, "Title must be at least 3 characters")
       .max(50, "Title is too long")
@@ -34,13 +35,11 @@ export default function NoteForm({ onClose }: NoteFormProps) {
   });
 
   const queryClient = useQueryClient();
-
-  const createTodo = useMutation({
+  const createNoteMutation = useMutation({
     mutationFn: createNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["note"] });
-      console.log("New ToDo added");
-      onClose();
+      console.log("New note added");
     },
   });
 
@@ -48,68 +47,79 @@ export default function NoteForm({ onClose }: NoteFormProps) {
     values: NoteFormValues,
     actions: FormikHelpers<NoteFormValues>
   ) => {
-    console.log(values);
-    createTodo.mutate(values);
+    createNoteMutation.mutate(values);
+    clearDraft();
     actions.resetForm();
+    router.back();
   };
+
   return (
-    <div className={c.backdrop} role="dialog" aria-modal="true">
-      <div className={c.modal}>
-        <Formik
-          initialValues={initialValues}
-          validationSchema={OrderFormSchema}
-          onSubmit={handleSubmit}
-        >
+    <Formik
+      initialValues={initialValues}
+      validationSchema={validationSchema}
+      onSubmit={handleSubmit}
+    >
+      {({ handleChange }) => {
+        const syncChange = (
+          e: React.ChangeEvent<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+          >
+        ) => {
+          handleChange(e); // Formik
+          setDraft({ ...draft, [e.target.name]: e.target.value }); // Zustand
+        };
+
+        return (
           <Form className={c.form}>
-            <div className={c.formGroup}>
-              <label htmlFor="title">Title</label>
-              <Field id="title" type="text" name="title" className={c.input} />
-              <ErrorMessage component="span" name="title" className={c.error} />
-            </div>
+            <Field
+              id="title"
+              name="title"
+              type="text"
+              className={c.input}
+              onChange={syncChange}
+            />
+            <ErrorMessage name="title" component="span" className={c.error} />
 
-            <div className={c.formGroup}>
-              <label htmlFor="content">Content</label>
-              <Field
-                as="textarea"
-                id="content"
-                name="content"
-                rows={8}
-                className={c.textarea}
-              />
-              <ErrorMessage
-                component="span"
-                name="content"
-                className={c.error}
-              />
-            </div>
+            <Field
+              as="textarea"
+              id="content"
+              name="content"
+              rows={8}
+              className={c.textarea}
+              onChange={syncChange}
+            />
+            <ErrorMessage name="content" component="span" className={c.error} />
 
-            <div className={c.formGroup}>
-              <label htmlFor="tag">Tag</label>
-              <Field as="select" id="tag" name="tag" className={c.select}>
-                <option value="Todo">Todo</option>
-                <option value="Work">Work</option>
-                <option value="Personal">Personal</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Shopping">Shopping</option>
-              </Field>
-              <ErrorMessage component="span" name="tag" className={c.error} />
-            </div>
+            <Field
+              as="select"
+              id="tag"
+              name="tag"
+              className={c.select}
+              onChange={syncChange}
+            >
+              <option value="Todo">Todo</option>
+              <option value="Work">Work</option>
+              <option value="Personal">Personal</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Shopping">Shopping</option>
+            </Field>
+            <ErrorMessage name="tag" component="span" className={c.error} />
 
             <div className={c.actions}>
               <button
                 type="button"
+                onClick={() => router.back()}
                 className={c.cancelButton}
-                onClick={onClose}
               >
                 Cancel
               </button>
-              <button type="submit" className={c.submitButton} disabled={false}>
+              <button type="submit" className={c.submitButton}>
                 Create note
               </button>
             </div>
           </Form>
-        </Formik>
-      </div>
-    </div>
+        );
+      }}
+    </Formik>
   );
 }

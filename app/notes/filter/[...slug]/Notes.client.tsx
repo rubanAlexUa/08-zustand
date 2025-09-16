@@ -3,10 +3,9 @@ import c from "./App.module.css";
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDebouncedCallback } from "use-debounce";
+import Link from "next/link";
 
-import NoteForm from "@/components/NoteForm/NoteForm";
 import NoteList from "@/components/NoteList/NoteList";
-import Modal from "@/components/Modal/Modal";
 import Pagination from "@/components/Pagination/Pagination";
 import SearchBox from "@/components/SearchBox/SearchBox";
 
@@ -50,16 +49,15 @@ export default function NotesClient({ tag }: Props) {
             changePage={setPage}
           />
         )}
-        <button className={c.button} onClick={() => setIsModalOpened(true)}>
+        <Link
+          href="/notes/action/create"
+          className={c.button}
+          onClick={() => setIsModalOpened(true)}
+        >
           Create note +
-        </button>
+        </Link>
       </header>
       {data && <NoteList notes={data.notes}></NoteList>}
-      {isModalOpened && (
-        <Modal onClose={onClose}>
-          <NoteForm onClose={onClose}></NoteForm>
-        </Modal>
-      )}
     </div>
   );
 }
