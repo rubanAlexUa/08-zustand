@@ -40,6 +40,8 @@ export default function NoteForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["note"] });
       console.log("New note added");
+      clearDraft();
+      router.back();
     },
   });
 
@@ -48,9 +50,7 @@ export default function NoteForm() {
     actions: FormikHelpers<NoteFormValues>
   ) => {
     createNoteMutation.mutate(values);
-    clearDraft();
     actions.resetForm();
-    router.back();
   };
 
   return (

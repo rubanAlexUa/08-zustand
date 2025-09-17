@@ -18,16 +18,11 @@ type Props = {
 export default function NotesClient({ tag }: Props) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [isModalOpened, setIsModalOpened] = useState(false);
   const { data } = useQuery({
-    queryKey: ["note", query, page, tag],
+    queryKey: ["notes", query, page, tag],
     queryFn: () => fetchNotes({ query, page, tag }),
     placeholderData: keepPreviousData,
   });
-
-  function onClose() {
-    setIsModalOpened(false);
-  }
 
   const totalPages = data?.totalPages ?? 0;
 
@@ -49,11 +44,7 @@ export default function NotesClient({ tag }: Props) {
             changePage={setPage}
           />
         )}
-        <Link
-          href="/notes/action/create"
-          className={c.button}
-          onClick={() => setIsModalOpened(true)}
-        >
+        <Link href="/notes/action/create" className={c.button}>
           Create note +
         </Link>
       </header>
